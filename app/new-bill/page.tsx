@@ -144,7 +144,8 @@ export default function NewBillPage() {
       customer_name: customerName || 'Walk-in Customer',
       total_amount: totalAmount,
       payment_mode: paymentMode,
-      paid_amount: paidAmount
+      paid_amount: paidAmount,
+      customer_phone: customerPhone
     }).select().single();
 
     if (saleError) return alert(saleError.message);

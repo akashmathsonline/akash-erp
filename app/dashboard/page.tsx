@@ -23,13 +23,14 @@ export default function Dashboard() {
       const { data: shopData } = await supabase.from('shop_settings').select('shop_name').eq('user_id', user.id).single();
       if (shopData) setShopName(shopData.shop_name);
 
-      // Aaj ki sales fetch karein
+      // Aaj ki sales fetch karein (Sirf 5)
       const today = new Date().toISOString().split('T')[0];
       const { data: salesData } = await supabase
         .from('sales')
         .select('*')
         .gte('created_at', today)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(5);
 
       if (salesData) {
         setSales(salesData);
@@ -101,7 +102,7 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-700">Recent Bills</h2>
-            <button onClick={() => router.push('/new-bill')} className="text-sm text-blue-600 hover:underline">View All</button>
+            <button onClick={() => router.push('/all-bills')} className="text-sm text-blue-600 hover:underline">View All</button>
           </div>
           {sales.length === 0 ? (
             <p className="text-gray-500 text-sm text-center py-4">Aaj koi bill nahi bana hai.</p>

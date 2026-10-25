@@ -12,7 +12,13 @@ function BillContent() {
 
   const [sale, setSale] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
+  
+  // Shop Settings ke liye naye states
   const [shopName, setShopName] = useState('My Shop');
+  const [shopAddress, setShopAddress] = useState('');
+  const [shopPhone, setShopPhone] = useState('');
+  const [receiptFooter, setReceiptFooter] = useState('Thank you! Visit Again.');
+
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const [whatsappNumber, setWhatsappNumber] = useState('');
 
@@ -20,16 +26,24 @@ function BillContent() {
     const fetchBill = async () => {
       if (!saleId) return;
 
+      // 1. Sale Data
       const { data: saleData } = await supabase.from('sales').select('*').eq('id', saleId).single();
       if (saleData) setSale(saleData);
 
+      // 2. Items Data
       const { data: itemsData } = await supabase.from('sale_items').select('*').eq('sale_id', saleId);
       if (itemsData) setItems(itemsData);
 
+      // 3. Shop Settings Data
       const { data: userData } = await supabase.auth.getUser();
       if (userData.user) {
-        const { data: shopData } = await supabase.from('shop_settings').select('shop_name').eq('user_id', userData.user.id).single();
-        if (shopData) setShopName(shopData.shop_name);
+        const { data: shopData } = await supabase.from('shop_settings').select('*').eq('user_id', userData.user.id).single();
+        if (shopData) {
+          setShopName(shopData.shop_name || 'My Shop');
+          setShopAddress(shopData.shop_address || '');
+          setShopPhone(shopData.shop_phone || '');
+          setReceiptFooter(shopData.receipt_footer || 'Thank you! Visit Again.');
+        }
       }
     };
     fetchBill();
@@ -68,7 +82,7 @@ function BillContent() {
     const itemsList = items.map(item => `- ${item.product_name} x ${item.quantity}: ₹${item.total}`).join('\n');
     const billNo = sale.id.slice(0, 8).toUpperCase();
 
-    const message = `Namaste ${sale.customer_name},\n\n*${shopName}* se aapka bill:\nBill No: #${billNo}\n\n${itemsList}\n\n*Grand Total: ₹${sale.total_amount}*\nPayment Mode: ${sale.payment_mode}\n\nAapka din shubh ho!\n\nDhanyawad,\n*${shopName}*`;
+    const message = `Namaste ${sale.customer_name},\n\n*${shopName}* se aapka bill:\nBill No: #${billNo}\n\n${itemsList}\n\n*Grand Total: ₹${sale.total_amount}*\nPayment Mode: ${sale.payment_mode}\n\n${receiptFooter}\n\nDhanyawad,\n*${shopName}*`;
 
     const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -129,19 +143,18 @@ function BillContent() {
       {/* ASLI BILL */}
       <div ref={billRef} className="max-w-2xl mx-auto bg-white p-10 rounded shadow-md border">
         
-        {/* Header */}
+        {/* Header with Address & Phone */}
         <div className="text-center border-b pb-4 mb-4">
           <h1 className="text-3xl font-extrabold text-gray-800 uppercase tracking-wide">{shopName}</h1>
-          <p className="text-sm text-gray-500 mt-1">Thank you for shopping with us!</p>
+          {shopAddress && <p className="text-sm text-gray-600 mt-1">{shopAddress}</p>}
+          {shopPhone && <p className="text-sm text-gray-600">📞 {shopPhone}</p>}
         </div>
 
         {/* Bill Info */}
         <div className="flex justify-between mb-6 text-sm text-gray-700">
           <div>
             <p><span className="font-semibold">Customer:</span> {sale.customer_name}</p>
-            <p><span className="font-semibold">Customer:</span> {sale.customer_name}</p>
-{/* Naya Phone Number yahan dikhega */}
-{sale.customer_phone && <p><span className="font-semibold">Phone:</span> {sale.customer_phone}</p>}
+            {sale.customer_phone && <p><span className="font-semibold">Phone:</span> {sale.customer_phone}</p>}
             <p><span className="font-semibold">Bill No:</span> {sale.id.slice(0, 8).toUpperCase()}</p>
           </div>
           <div className="text-right">
@@ -191,10 +204,10 @@ function BillContent() {
           </div>
         )}
 
-        {/* Footer */}
+        {/* Footer with Custom Message */}
         <div className="text-center mt-10 text-xs text-gray-500">
           <p><span className="font-semibold">Payment Mode:</span> {sale.payment_mode}</p>
-          <p className="mt-2 text-sm">Thank you! Visit Again.</p>
+          <p className="mt-2 text-sm font-medium">{receiptFooter}</p>
           <p className="mt-1 font-bold text-gray-700">{shopName}</p>
         </div>
       </div>
