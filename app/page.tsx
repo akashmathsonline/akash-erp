@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -8,7 +8,36 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [shopCode, setShopCode] = useState('');
   const [message, setMessage] = useState('');
+  const [dynamicLogo, setDynamicLogo] = useState(''); // Naya state
   const router = useRouter();
+
+  // Jab shop code type karein, toh uska logo fetch karein
+  useEffect(() => {
+    const fetchShopLogo = async () => {
+      if (shopCode.length > 1) {
+        const { data } = await supabase
+          .from('tenants')
+          .select('shop_name')
+          .eq('tenant_code', shopCode.toLowerCase())
+          .single();
+        
+        // Agar tenant mil gaya, toh uska settings se logo nikaalein
+        if (data) {
+          const { data: shopData } = await supabase
+            .from('shop_settings')
+            .select('logo_url')
+            .eq('shop_name', data.shop_name)
+            .single();
+          if (shopData) setDynamicLogo(shopData.logo_url);
+        } else {
+          setDynamicLogo('');
+        }
+      } else {
+        setDynamicLogo('');
+      }
+    };
+    fetchShopLogo();
+  }, [shopCode]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,23 +73,27 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       
-      {/* Main Card */}
       <div className="bg-white rounded-3xl shadow-2xl flex flex-col md:flex-row w-full max-w-4xl overflow-hidden">
         
-        {/* Left Side: Branding (Mobile me bhi dikhega) */}
+        {/* Left Side: Branding with Dynamic Logo */}
         <div className="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-indigo-800 p-10 flex flex-col items-center justify-center text-center relative overflow-hidden">
-          {/* Background pattern */}
           <div className="absolute top-0 left-0 w-full h-full opacity-10">
              <div className="absolute -top-10 -left-10 w-40 h-40 bg-white rounded-full"></div>
              <div className="absolute bottom-10 right-0 w-32 h-32 bg-white rounded-full"></div>
           </div>
           
           <div className="relative z-10">
-            {/* Default Logo Yahan Dikhayein */}
-            <div className="bg-white p-4 rounded-2xl shadow-lg inline-block mb-6">
-               <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" className="w-16 h-16 md:w-24 md:h-24 object-contain" />
+            <div className="bg-white p-4 rounded-2xl shadow-lg inline-block mb-6 transition-all">
+               {/* Yahan dynamic logo lagaya gaya hai */}
+               {dynamicLogo ? (
+                 <img src={dynamicLogo} alt="Shop Logo" className="w-16 h-16 md:w-24 md:h-24 object-contain rounded" />
+               ) : (
+                 <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Default Logo" className="w-16 h-16 md:w-24 md:h-24 object-contain" />
+               )}
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2 tracking-tight">Akash ERP</h1>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2 tracking-tight">
+              {dynamicLogo ? 'Your Shop' : 'Akash ERP'}
+            </h1>
             <p className="text-blue-200 text-sm md:text-base">Your Business, Simplified.</p>
           </div>
         </div>
