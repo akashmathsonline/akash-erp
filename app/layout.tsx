@@ -14,12 +14,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Service Worker register karein (PWA install ke liye zaroori)
-    if ('serviceWorker' in navigator) {
+   // Service Worker Register karein
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then((reg) => console.log('Service Worker registered', reg))
-        .catch((err) => console.log('Service Worker registration failed', err));
+        .then((reg) => console.log('SW registered:', reg.scope))
+        .catch((err) => console.log('SW error:', err));
     }
+
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
