@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -7,6 +7,8 @@ export default function SettingsPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     shop_name: '',
@@ -28,10 +30,36 @@ export default function SettingsPage() {
           shop_phone: data.shop_phone || '',
           receipt_footer: data.receipt_footer || ''
         });
+        setLogoUrl(data.logo_url || '');
       }
     };
     fetchSettings();
   }, []);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // 1. Supabase Storage mein upload karein
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage.from('logos').upload(fileName, file);
+    if (uploadError) return alert('Upload Error: ' + uploadError.message);
+
+    // 2. Public URL nikaalein
+    const { data: urlData } = supabase.storage.from('logos').getPublicUrl(fileName);
+    
+    if (urlData) {
+      setLogoUrl(urlData.publicUrl);
+      // 3. Database mein save karein
+      await supabase.from('shop_settings').update({ logo_url: urlData.publicUrl }).eq('user_id', user.id);
+      alert('Logo Uploaded Successfully!');
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +102,25 @@ export default function SettingsPage() {
 
           <form onSubmit={handleSave} className="space-y-6">
             
+            {/* Logo Section */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">🖼️ Shop Logo</h2>
+              <div className="flex items-center gap-4">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Shop Logo" className="w-20 h-20 object-contain border rounded p-1" />
+                ) : (
+                  <div className="w-20 h-20 bg-gray-100 border rounded flex items-center justify-center text-gray-400 text-xs text-center p-2">No Logo</div>
+                )}
+                <div>
+                  <input type="file" ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="bg-blue-100 text-blue-700 px-4 py-2 rounded font-semibold text-sm hover:bg-blue-200">
+                    Upload New Logo
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2">PNG ya JPG (Max 2MB)</p>
+                </div>
+              </div>
+            </div>
+
             {/* Basic Info */}
             <div>
               <h2 className="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">🏪 Basic Info</h2>

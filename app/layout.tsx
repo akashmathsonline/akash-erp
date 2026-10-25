@@ -8,6 +8,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const pathname = usePathname();
   const [shopName, setShopName] = useState('My Shop');
+  const [shopLogo, setShopLogo] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -20,8 +21,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         if (user.email === 'srivastvaakash2020@gmail.com') {
           setIsSuperAdmin(true);
         }
-        const { data } = await supabase.from('shop_settings').select('shop_name').eq('user_id', user.id).single();
-        if (data) setShopName(data.shop_name);
+        const { data } = await supabase.from('shop_settings').select('*').eq('user_id', user.id).single();
+        if (data) {
+          setShopName(data.shop_name);
+          setShopLogo(data.logo_url || '');
+        }
       } else {
         setIsLoggedIn(false);
       }
@@ -46,6 +50,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   if (pathname === '/' || !isLoggedIn) {
     return (
       <html lang="en">
+        <head>
+          <link rel="manifest" href="/manifest.json" />
+          <meta name="theme-color" content="#ea580c" />
+          {shopLogo && <link rel="icon" href={shopLogo} />}
+        </head>
         <body>{children}</body>
       </html>
     );
@@ -53,12 +62,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#ea580c" />
+        {shopLogo && <link rel="icon" href={shopLogo} />}
+      </head>
       <body className="bg-gray-50">
         <div className="flex min-h-screen">
           
           {/* Mobile Top Bar */}
           <div className="md:hidden fixed top-0 w-full bg-gray-900 text-white p-4 flex justify-between items-center z-50 shadow-md">
-            <h1 className="font-bold text-orange-400">{shopName}</h1>
+            <div className="flex items-center gap-2">
+              {shopLogo ? (
+                <img src={shopLogo} alt="Logo" className="w-8 h-8 object-contain rounded" />
+              ) : null}
+              <h1 className="font-bold text-orange-400">{shopName}</h1>
+            </div>
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-2xl">
               ☰
             </button>
@@ -70,9 +89,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             ${isMobileMenuOpen ? 'translate-x-0 flex' : '-translate-x-full md:translate-x-0 md:flex hidden'}
           `}>
             <div className="p-6 border-b border-gray-800 flex justify-between items-center">
-              <div>
-                <h1 className="text-xl font-bold truncate text-orange-400">{shopName}</h1>
-                <p className="text-xs text-gray-400 mt-1">ERP System</p>
+              <div className="flex items-center gap-3">
+                {shopLogo ? (
+                  <img src={shopLogo} alt="Logo" className="w-10 h-10 object-contain rounded" />
+                ) : null}
+                <div>
+                  <h1 className="text-xl font-bold truncate text-orange-400">{shopName}</h1>
+                  <p className="text-xs text-gray-400 mt-1">ERP System</p>
+                </div>
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-gray-400 hover:text-white">
                 ✕

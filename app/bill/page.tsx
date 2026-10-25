@@ -2,7 +2,7 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toPng } from 'html-to-image';
+import domtoimage from 'dom-to-image-more'; // Nayi library
 
 function BillContent() {
   const router = useRouter();
@@ -13,10 +13,11 @@ function BillContent() {
   const [sale, setSale] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   
-  // Shop Settings ke liye naye states
+  // Shop Settings ke liye states
   const [shopName, setShopName] = useState('My Shop');
   const [shopAddress, setShopAddress] = useState('');
   const [shopPhone, setShopPhone] = useState('');
+  const [shopLogo, setShopLogo] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('Thank you! Visit Again.');
 
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
@@ -42,6 +43,7 @@ function BillContent() {
           setShopName(shopData.shop_name || 'My Shop');
           setShopAddress(shopData.shop_address || '');
           setShopPhone(shopData.shop_phone || '');
+          setShopLogo(shopData.logo_url || '');
           setReceiptFooter(shopData.receipt_footer || 'Thank you! Visit Again.');
         }
       }
@@ -56,15 +58,26 @@ function BillContent() {
   const handleDownloadImage = async () => {
     if (!billRef.current) return;
     try {
-      const dataUrl = await toPng(billRef.current, { 
-        cacheBust: true, 
-        backgroundColor: '#ffffff',
-        pixelRatio: 2 
+      const originalScrollY = window.scrollY;
+      window.scrollTo(0, 0);
+
+      // dom-to-image-more se image banayein
+      const dataUrl = await domtoimage.toPng(billRef.current, {
+        bgcolor: '#ffffff',
+        width: billRef.current.scrollWidth,
+        height: billRef.current.scrollHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
+        }
       });
+
       const link = document.createElement('a');
       link.download = `Bill-${sale.id.slice(0, 8)}.png`;
       link.href = dataUrl;
       link.click();
+
+      window.scrollTo(0, originalScrollY);
     } catch (err) {
       console.error('Image download failed', err);
       alert('Image download me error aaya.');
@@ -143,8 +156,11 @@ function BillContent() {
       {/* ASLI BILL */}
       <div ref={billRef} className="max-w-2xl mx-auto bg-white p-10 rounded shadow-md border">
         
-        {/* Header with Address & Phone */}
-        <div className="text-center border-b pb-4 mb-4">
+        {/* Header with Logo, Address & Phone */}
+        <div className="text-center border-b pb-4 mb-4 flex flex-col items-center justify-center">
+          {shopLogo && (
+            <img src={shopLogo} alt="Logo" className="w-16 h-16 object-contain mb-2 rounded" />
+          )}
           <h1 className="text-3xl font-extrabold text-gray-800 uppercase tracking-wide">{shopName}</h1>
           {shopAddress && <p className="text-sm text-gray-600 mt-1">{shopAddress}</p>}
           {shopPhone && <p className="text-sm text-gray-600">📞 {shopPhone}</p>}
